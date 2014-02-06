@@ -1,0 +1,317 @@
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/rickshaw.js"></script>
+<script src="/js/d3.js"></script>
+
+<!-- <script src="/rickshaw.js"></script> -->
+<head>
+<link rel="stylesheet" type="text/css" href="css/rickshaw.css">
+<link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400' rel='stylesheet' type='text/css'>
+</head>
+
+
+<style>
+#graphHolder {
+        position: relative;
+        font-family: Arial, Helvetica, sans-serif;
+}
+#graph {
+        position: relative;
+        left: 40px;
+}
+#y_axis {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 40px;
+}
+.graphBox{
+    position:relative;
+    width:75%;
+    margin: 0 auto;
+}
+
+.label{position:relative;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 200%;
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
+.promptLabel{
+    position:relative;
+    margin: 0 auto;
+    margin-top: 20%;
+    text-align: center;
+    font-size: 200%;
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
+.textEntry{position:absolute;
+    left:50%;
+    top:50%;
+    margin-left: -15%;
+    margin-top: -15%;
+    width:30%;
+    height:50%;
+    border:1px solid #ABF;
+    text-align:center;
+    font-size: 200%;
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
+.message{
+    position:relative;
+    width:100%;
+    font-family: 'Source Sans Pro', sans-serif;
+    text-align:center;
+    padding-top: 2%;
+    padding-bottom: 2%;
+}
+
+body{ margin: 0px; }
+
+#container{
+    position:relative;
+    width:80%;
+    height:100%;
+    float:left;
+   /* margin-right: 22%;*/
+}
+
+#arduinoFrame{
+    position:absolute;
+    width:100%;
+    height:100%;
+}
+
+#messages{
+    position:relative;
+    float:right;
+    width:20%;
+    height:100%;
+    overflow:scroll;
+    overflow-x:hidden;
+}
+
+
+input[type=submit] {padding:5px 15px; background:#ccc; border:0 none;
+cursor:pointer;
+-webkit-border-radius: 5px;
+border-radius: 5px; }
+</style>
+
+
+
+<body>
+    <div id="arduino">
+        <div id="messages">
+
+        </div>
+        <div id="container">
+
+        </div>
+    </div>
+</body>
+
+
+
+<script>
+  var oList = {}
+  var container = document.getElementById("container");
+  var arduinoFrame = document.getElementById("arduino");
+  var messages = document.getElementById("messages");
+  var ip = null;
+
+
+  var dataList = [];
+  var counter = 0;
+  var width = window.innerWidth;
+  var width = window.innerHeight; 
+
+
+  function Graph(p){
+    this.port = p;
+    this.label = "Port: "+this.port;
+    this.dataList = [];
+    
+
+    this.initList = function initList(list,top){
+      for(i=0;i<top;i++){
+        list.push({x:new Date().getTime() / 1000,y:0});
+    }
+  }
+
+  this.initList(this.dataList,100)
+
+
+
+    this.update = function(why, inout){
+        this.dataList.shift();
+        this.dataList.push({x:new Date().getTime()/1000,y:why});
+        this.label = "Port "+this.port + "\t    set: <i>" + inout+"</i>";  
+        this.labelBox.innerHTML = this.label;
+        this.graph.update();
+    }
+
+    this.graphBox = document.createElement('div');
+    this.graphBox.className = "GraphBox"
+
+    this.holder = document.createElement('div');
+    this.labelBox = document.createElement('div');
+
+    this.labelBox.className = "label"
+
+    this.graphBox.appendChild(this.holder);
+    this.graphBox.appendChild(this.labelBox);
+    container.appendChild(this.graphBox);
+
+    this.labelBox.innerHTML = this.label;
+
+    this.graph = new Rickshaw.Graph( {
+      element: this.holder,
+      series: [
+       {
+          color: 'lightblue',
+          data: this.dataList,
+          name: "Port: "+this.port
+        }
+      ],
+      interpolation: "linear"
+    } );
+
+    var ticksTreatment = 'glow';
+
+    var yAxis = new Rickshaw.Graph.Axis.Y( {
+        graph: this.graph,  
+        ticksTreatment: ticksTreatment,
+        // tickFormat: yAxisFormat
+    } );
+
+
+    var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+    graph: this.graph,
+    xFormatter: function(x) {
+        return new Date(x * 1000).toString();
+    },
+    yFormatter: function(y) { 
+        return "Pin Value: " + y.toString();
+
+    }
+
+    } );
+
+
+    this.graph.render();
+    yAxis.render();
+
+  }
+
+
+
+  function addToList(list, ex,why){
+    list.shift();
+    list.push({x:ex,y:why});
+  }
+
+
+  function gogo(){
+    
+    prompter = document.getElementById('prompter')
+    tp = document.getElementById('textPlace');
+    ip = tp.value;
+
+    if(ip == null){
+        ip = "localhost";
+    }
+    
+    var socket = io.connect('http://'+ip+":7113");
+    prompterPa = prompter.parentNode;
+    prompterPa.removeChild(prompter);
+    arduinoFrame.style.backgroundColor = "transparent"
+
+
+      socket.on('news', function (data) {
+
+        parsedData = data.someData.split(",");
+        port = parsedData[0].split(" ")[1];
+        inout = parsedData[2];
+
+        parsedData = parsedData[1];
+
+        if(port in oList){
+            //update value
+            oList[port].update(parseInt(parsedData),inout);
+        }else{
+            //make a new one
+            oList[port] = new Graph(port);
+            oList[port].update(parseInt(parsedData),inout);
+        }
+    });
+
+
+      socket.on('messages', function (data) {
+        addMessage(data.payload);
+    });
+
+
+  }
+
+  function addMessage(msg){
+    newMessage = document.createElement('div');
+    newMessage.className = "message";
+    newMessage.innerHTML = msg;
+    messages.appendChild(newMessage);
+  }
+
+  function setupPrompt(){
+    input = document.createElement('div');
+    input.className = 'textEntry';
+    input.id = "prompter";
+    input.style.backgroundColor="white";
+
+    prompt = document.createElement('div');
+    prompt.className='promptLabel';
+    prompt.innerHTML = "IP?";
+
+    form = document.createElement('form')
+    form.setAttribute('method','post')
+    form.setAttribute('action', 'doIP')     
+
+    inp = document.createElement('input')
+    inp.setAttribute('type','text');
+    inp.setAttribute('name','ip');
+    inp.id = "textPlace";
+
+
+    sub = document.createElement('input')
+    sub.setAttribute('type','submit');
+    sub.setAttribute('value','submit');
+    sub.setAttribute('onclick','gogo()');
+
+     inp.onkeypress = (function(event){
+        if(event.keyCode == 13){
+           sub.click(); 
+        }
+    })
+
+    input.appendChild(prompt);
+    input.appendChild(inp);
+    input.appendChild(sub);
+    arduinoFrame.appendChild(input)
+
+    arduinoFrame.style.backgroundColor="lightblue";
+
+    inp.focus();
+
+  }
+
+  window.addEventListener('load', function() {
+    setupPrompt();
+ }, false);
+
+
+
+</script>
+
+
+
