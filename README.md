@@ -48,6 +48,10 @@ PrintD prints out the value of a port in graphable format by this program. Lets 
 
     printD(7,false,true);
     
+This is basically a wrapper for my communication protocal which may be seen below.
+
+![image](http://i.imgur.com/Dqb7xl9.png =256x256)    
+
 ###myAnalogWrite
 
     void myAnalogWrite(int port, int val){...}
