@@ -68,20 +68,34 @@
     padding-bottom: 2%;
 }
 
+.secLab{
+    position:relative;
+    width:100%;
+    font-size: 300%;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-weight: bold;
+    text-align:center;
+    visibility: hidden;
+
+}
+
 body{ margin: 0px; }
+
+
+#arduinoFrame{
+    position:absolute;
+    width:100%;
+    height:100%;
+}
+
 
 #container{
     position:relative;
     width:80%;
     height:100%;
     float:left;
-   /* margin-right: 22%;*/
-}
-
-#arduinoFrame{
-    position:absolute;
-    width:100%;
-    height:100%;
+    overflow:scroll;
+    overflow-x:hidden;
 }
 
 #messages{
@@ -104,12 +118,17 @@ border-radius: 5px; }
 
 <body>
     <div id="arduino">
-        <div id="messages">
 
-        </div>
-        <div id="container">
+            
+            <div id="messages">
+                <div class="secLab">Messages</div>
+            </div>
+ 
 
-        </div>
+
+            <div id="container">
+                <div class="secLab">Pin Graphs</div>
+            </div>
     </div>
 </body>
 
@@ -217,6 +236,10 @@ border-radius: 5px; }
   function gogo(){
     
     prompter = document.getElementById('prompter')
+    messageLabel = document.getElementsByClassName('secLab');
+    for(i=0;i<messageLabel.length;i++){
+        messageLabel[i].style.visibility= 'visible';
+    }
     tp = document.getElementById('textPlace');
     ip = tp.value;
 
@@ -259,7 +282,11 @@ border-radius: 5px; }
   function addMessage(msg){
     newMessage = document.createElement('div');
     newMessage.className = "message";
-    newMessage.innerHTML = msg;
+    time = new Date();
+    sec = time.getSeconds();
+    min = time.getMinutes();
+    hour = time.getHours();
+    newMessage.innerHTML = "<i>["+hour+":"+min+":"+sec +"]</i> "+ msg;
     messages.appendChild(newMessage);
   }
 
