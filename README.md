@@ -20,7 +20,12 @@ then run
     sudo npm install -g supervisor
     
     
-you will have to rename your serial port, but run
+you will have to rename your serial port to match where the arduino is
+
+    var portName = "/dev/tty.usbmodem1411"
+    
+
+to whatever port your arduino occupies then run
 
     supervisor node readdata.js
    
